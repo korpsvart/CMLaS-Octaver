@@ -43,7 +43,7 @@ SynthDef(\octaverMain,{
 	arg inBus, outBus = 0,
 	octaveUp1Bus, octaveUp2Bus,
 	octaveDown1Bus, octaveDown2Bus,
-	dryKnobLevel = 0,
+	dryKnobLevel = 1,
 	octaveUp1KnobLevel = 0,
 	octaveUp2KnobLevel = 0,
 	octaveDown1KnobLevel = 0,
@@ -123,7 +123,8 @@ SynthDef(\octaveUp2PitchShiftTimeDomain, {
 
 SynthDef("octaveUp1", {
 	arg outBus=0, inBus;
-	var lpfOut, rectSig, in;
+	var lpfOut, rectSig, in, freq;
+
 	in = In.ar(inBus, 1);
 	//We perform full wave rectification (by taking absolute value)
 	//to double the frequency
@@ -135,7 +136,8 @@ SynthDef("octaveUp1", {
 	lpfOut = LPF.ar(rectSig, 4000);
 
 
-	Out.ar(outBus, lpfOut);
+
+	Out.ar(outBus, lpfOut*2);
 
 
 }).add;
@@ -162,6 +164,24 @@ SynthDef("octaveDown1", { arg outBus=0, inBus;
 }).add;
 
 
+/* Pitch Shift using pitch tracking (obviously monophonic) */
+
+
+
+SynthDef("octaveUp1PT", { arg outBus=0, inBus, pitchShiftAmount = 2;
+	var freq, in, source, env;
+	in = In.ar(inBus, 1);
+
+
+
+	//Do half-wave rectification
+
+	freq = Pitch.kr(in);
+	//env = Amplitude.kr(in);
+	source = SinOsc.ar(freq*pitchShiftAmount, mul:0.2);
+
+	Out.ar(outBus, source);
+}).add;
 
 
 
@@ -217,10 +237,56 @@ SynthDef(\phaseVocoderAdvanced, {
 //Global variables
 p = 0; //frame number counter
 
-SynthDef(\phaseVocoderOCEAN, {
+SynthDef(\phaseVocoderOCEANUp1, {
 
 
 	arg outBus, inBus, pitchShiftAmount = 2,
+	fftSize = 8192, winLen = 4096, overlap=0.25, inWinType = 0, outWinType = 0;
+
+	var in, chain, multiplier, newBin;
+
+	multiplier = (2*pi) / (overlap*fftSize);
+
+
+
+
+
+	in = In.ar(inBus, 1);
+
+
+	chain = FFT(LocalBuf(fftSize), in, overlap, inWinType, 1, winLen);
+
+	//Shift bins
+	chain = PV_BinShift(chain, pitchShiftAmount, 0);
+
+
+	//Adjust phase
+
+
+	chain = chain.pvcollect(1024,{ arg magnitude, phase, bin, index;
+		//p = p + 1;
+
+		[magnitude, phase + (pitchShiftAmount*bin-bin+0.5)*multiplier]
+	});
+
+
+
+
+
+
+
+	chain = IFFT(chain);
+	//chain = LPF.ar(chain, 8000);
+	Out.ar(outBus, chain);
+
+
+
+}).add;
+
+SynthDef(\phaseVocoderOCEANDown1, {
+
+
+	arg outBus, inBus, pitchShiftAmount = 0.5,
 	fftSize = 8192, winLen = 4096, overlap=0.25, inWinType = 0, outWinType = 0;
 
 	var in, chain, multiplier, newBin;
@@ -237,17 +303,22 @@ SynthDef(\phaseVocoderOCEAN, {
 	chain = FFT(LocalBuf(fftSize), in, overlap, inWinType, 1, winLen);
 
 	//Shift bins
-	chain = PV_BinShift(chain, pitchShiftAmount, 0.5);
+	chain = PV_MagShift(chain, pitchShiftAmount, 0);
 
 
 	//Adjust phase
 
+	/*
 
 	chain = chain.pvcollect(1024,{ arg magnitude, phase, bin, index;
 		p = p + 1;
 
 		[magnitude, phase + (pitchShiftAmount*bin-bin+0.5)*multiplier]
 	});
+
+	*/
+
+
 
 
 
@@ -264,12 +335,16 @@ SynthDef(\phaseVocoderOCEAN, {
 
 
 
+
+
 SynthDef(\readInputSignal, {
 
 	arg outBus = 0;
 
 	//Adjust argument to your input port
 	Out.ar(outBus, SoundIn.ar(1));
+
+	//Out.ar(outBus, SinOsc.ar(440, 0, 0.5));
 
 }).add;
 
@@ -319,9 +394,8 @@ var w = Window.new("GUI Introduction", Rect(200,200,1000,300));
 
 //Bus and SynthDef setup
 
-octUp1PolySD = Synth(\phaseVocoderOCEAN, [\inBus, octaveUp1BusPolyphonic]);
-octDown1PolySD = Synth(\phaseVocoderOCEAN, [\inBus, octaveDown1BusPolyphonic,
-	\pitchShiftAmount, 0.5]);
+octUp1PolySD = Synth(\phaseVocoderOCEANUp1, [\inBus, octaveUp1BusPolyphonic]);
+octDown1PolySD = Synth(\phaseVocoderOCEANDown1, [\inBus, octaveDown1BusPolyphonic]);
 octDown1MonoSD = Synth(\octaveDown1, [\inBus, octaveDown1BusMonophonic]);
 octUp1MonoSD = Synth(\octaveUp1, [\inBus, octaveUp1BusMonophonic]);
 z = Synth(\octaverMain, [\inBus, inputBus, \octaveUp1Bus, octaveUp1BusMonophonic,
@@ -452,10 +526,12 @@ lowOctLevel.action_({
 dryOctLevel = Knob.new(w,Rect(400,90,110,30)).background_(Color.red(val:0.8, alpha:0.5));
 t2 = CompositeView.new(w,Rect(445,60,200,30));
 StaticText.new(t2,Rect(0,0,150,30)).string_("vol");
-dryOctLevel.action({
+dryOctLevel.action_({
 	arg knob;
 	z.set(\dryKnobLevel, knob.value);
+		knob.value.postln;
 });
+dryOctLevel.value = 1;
 /*highOctLevel.action_({
 	octaveUp1KnobLevel=highOctLevel.value*100;
 
