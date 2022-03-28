@@ -10,6 +10,9 @@ var amp;
 var lowOctEffect, highOctEffect, dryOctEffect;
 var dispertionLowOct, dispertionLow2Oct, dispertionHiOct, dispertionHi2Oct;
 var w = Window.new("GUI Introduction", Rect(200,200,1000,300));
+
+
+
 w.background=Color.grey(grey:0.9, alpha:0.6);
 w.front;
 
