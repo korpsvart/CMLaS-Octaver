@@ -389,7 +389,7 @@ w.front;
 
 
 i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2.png");
-//i.plot();
+i.plot();
 i.url.postln;
 
 
@@ -437,7 +437,7 @@ ampKnob.action_({
 
 
 //button POLYPHONIC MONOPHONIC
-setPoly = Button(parent:w, bounds:Rect(730, 50, 80, 30)).states_([
+setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
 	["monophonic", Color.black, Color.green(val:0.7, alpha:0.5)],
     ["polyphonic", Color.white, Color.red(val:0.6, alpha:0.5)]
 ]).action_({ arg butt;
