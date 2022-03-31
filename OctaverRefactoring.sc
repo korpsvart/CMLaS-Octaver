@@ -65,7 +65,7 @@ SynthDef(\octaverMain,{
 /*Pitch shifting in time domain (using PitchShift.ar) version */
 
 SynthDef(\octaveUp1PitchShiftTimeDomain, {
-	arg outBus = 0, inBus;
+	arg chorusBus, inBus;
 
 	var inputSource, pitchShifted;
 
@@ -73,13 +73,13 @@ SynthDef(\octaveUp1PitchShiftTimeDomain, {
 
 	pitchShifted = PitchShift.ar(inputSource, pitchRatio:2);
 
-	Out.ar(outBus, pitchShifted);
+	Out.ar(chorusBus, pitchShifted);
 
 }).add;
 
 
 SynthDef(\octaveUp2PitchShiftTimeDomain, {
-	arg outBus = 0, inBus;
+	arg chorusBus, inBus;
 
 	var inputSource, pitchShifted;
 
@@ -87,7 +87,7 @@ SynthDef(\octaveUp2PitchShiftTimeDomain, {
 
 	pitchShifted = PitchShift.ar(inputSource, pitchRatio:4);
 
-	Out.ar(outBus, pitchShifted);
+	Out.ar(chorusBus, pitchShifted);
 
 }).add;
 
@@ -97,7 +97,7 @@ SynthDef(\octaveUp2PitchShiftTimeDomain, {
 
 
 SynthDef("octaveUp1", {
-	arg outBus=0, inBus;
+	arg chorusBus, inBus;
 	var lpfOut, rectSig, in, freq;
 
 	in = In.ar(inBus, 1);
@@ -112,7 +112,7 @@ SynthDef("octaveUp1", {
 
 
 
-	Out.ar(outBus, lpfOut*2);
+	Out.ar(chorusBus, lpfOut*2);
 
 
 }).add;
@@ -120,7 +120,7 @@ SynthDef("octaveUp1", {
 
 
 
-SynthDef("octaveDown1", { arg outBus=0, inBus;
+SynthDef("octaveDown1", { arg chorusBus, inBus;
 	var lpfOut, ff1, ff2, rectSig, in, oct1, oct2, direct, halfRect;
 	in = In.ar(inBus, 1);
 
@@ -135,7 +135,7 @@ SynthDef("octaveDown1", { arg outBus=0, inBus;
 
 
 
-	Out.ar(outBus, ff1*halfRect);
+	Out.ar(chorusBus, ff1*halfRect);
 }).add;
 
 
@@ -215,7 +215,7 @@ p = 0; //frame number counter
 SynthDef(\phaseVocoderOCEANUp1, {
 
 
-	arg outBus, inBus, pitchShiftAmount = 2,
+	arg chorusBus, inBus, pitchShiftAmount = 2,
 	fftSize = 8192, winLen = 4096, overlap=0.25, inWinType = 0, outWinType = 0;
 
 	var in, chain, multiplier, newBin;
@@ -252,7 +252,7 @@ SynthDef(\phaseVocoderOCEANUp1, {
 
 	chain = IFFT(chain);
 	//chain = LPF.ar(chain, 8000);
-	Out.ar(outBus, chain);
+	Out.ar(chorusBus, chain);
 
 
 
@@ -261,7 +261,7 @@ SynthDef(\phaseVocoderOCEANUp1, {
 SynthDef(\phaseVocoderOCEANDown1, {
 
 
-	arg outBus, inBus, pitchShiftAmount = 0.5,
+	arg chorusBus, inBus, pitchShiftAmount = 0.5,
 	fftSize = 8192, winLen = 4096, overlap=0.25, inWinType = 0, outWinType = 0;
 
 	var in, chain, multiplier, newBin;
@@ -299,12 +299,42 @@ SynthDef(\phaseVocoderOCEANDown1, {
 
 	chain = IFFT(chain);
 	//chain = LPF.ar(chain, 8000);
-	Out.ar(outBus, chain);
+	Out.ar(chorusBus, chain);
 
 
 
 }).add;
 
+
+
+/* Chorus SynthDef */
+
+SynthDef("chorus2", { arg outBus=0, inBus;
+	var in, detunedSig, delayedSig,lpfOut, hpfOut, oct1, wet = 0;
+	in = In.ar(inBus, 1);
+
+	//in = LeakDC.ar(In.ar(inBus),0.999); //SoundIn is microphone input
+	detunedSig = FreqShift.ar(in, 10); //frequency shift of signal
+	delayedSig = Delay1.ar(in, mul: 1.0, add: 0.0);
+
+	lpfOut = LPF.ar(delayedSig, 4000); // lowpass filter of the input
+	hpfOut = RHPF.ar(lpfOut, 200);
+
+	Out.ar(outBus, wet*hpfOut+(1-wet)*in);
+}).add;
+
+
+
+SynthDef(\chorus, { arg inBus=10, outbus=0, predelay=0.08, speed=0.05, depth=0.1, ph_diff=0.5, wet = 0.7;
+	var in, sig, modulators, numDelays = 12, source;
+	source = In.ar(inBus, 1);
+	in = source * numDelays.reciprocal;
+	modulators = Array.fill(numDelays, {arg i; LFPar.kr(speed*rrand(0.94, 1.06), ph_diff * i, depth, predelay);});
+	sig = DelayC.ar(in, 0.5, modulators);
+sig = sig.sum; //Mix(sig);
+	Out.ar(outbus, wet*sig);
+	Out.ar(outbus, (1-wet)*source);
+}).add;
 
 
 
@@ -342,12 +372,14 @@ var octaveDown1BusMonophonic = Bus.audio(s,1);
 var octaveUp1BusPolyphonic = Bus.audio(s,1);
 var octaveDown1BusPolyphonic = Bus.audio(s,1);
 
+var chorusBus = Bus.audio(s, 1); //Bus for chorus FX
+
 
 var inputBus = Bus.audio(s, 1);
 
 //Synth def variables
 
-var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD;
+var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD, chorusSD;
 
 
 
@@ -355,7 +387,7 @@ var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD;
 
 
 
-var octaveKnob, wetKnob, setPoly;
+var octaveKnob, wetKnob, chorusKnob, setPoly;
 var ampKnob;
 
 
@@ -367,13 +399,22 @@ var v = View(w, Rect(0,0,800,450));
 
 //Bus and SynthDef setup
 
-octUp1PolySD = Synth(\phaseVocoderOCEANUp1, [\inBus, octaveUp1BusPolyphonic]);
-octDown1PolySD = Synth(\phaseVocoderOCEANDown1, [\inBus, octaveDown1BusPolyphonic]);
-octDown1MonoSD = Synth(\octaveDown1, [\inBus, octaveDown1BusMonophonic]);
-octUp1MonoSD = Synth(\octaveUp1, [\inBus, octaveUp1BusMonophonic]);
+g = Group.new;
+
+octUp1PolySD = Synth(\phaseVocoderOCEANUp1, [\inBus, octaveUp1BusPolyphonic,
+	\chorusBus, chorusBus], g);
+octDown1PolySD = Synth(\phaseVocoderOCEANDown1, [\inBus, octaveDown1BusPolyphonic,
+	\chorusBus, chorusBus, g]);
+octDown1MonoSD = Synth(\octaveDown1, [\inBus, octaveDown1BusMonophonic,
+	\chorusBus, chorusBus], g);
+octUp1MonoSD = Synth(\octaveUp1, [\inBus, octaveUp1BusMonophonic,
+	\chorusBus, chorusBus], g);
 z = Synth(\octaverMain, [\inBus, inputBus, \octaveUpBus, octaveUp1BusMonophonic,
-	\octaveDownBus, octaveDown1BusMonophonic,
+	\octaveDownBus, octaveDown1BusMonophonic,g
 ]);
+
+
+chorusSD = Synth.after(g, \chorus, [\inBus, chorusBus]);
 
 
 h = Synth(\readInputSignal, [\outBus, inputBus]);
@@ -433,6 +474,17 @@ ampKnob.action_({
 
 });
 
+chorusKnob = Knob.new(v,Rect(380,280,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
+//t1 = CompositeView.new(w,Rect(265,60,200,30));
+//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
+chorusKnob.action_({
+	arg knob;
+  chorusSD.set(\wet, knob.value);
+	knob.value.postln;
+
+});
+
+
 
 
 
@@ -463,8 +515,6 @@ setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
 
 
 )
-
-
 
 
 
