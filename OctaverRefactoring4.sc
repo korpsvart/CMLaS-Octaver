@@ -179,37 +179,6 @@ SynthDef(\phaseVocoderPitchShift,{
 }).add;
 
 
-SynthDef(\phaseVocoderAdvanced, {
-	arg inBus, outBus = 0;
-
-
-	var in, out, amp, fftSize=8192, winLen=2048, overlap=0.5 ,
-	chain, mexp, fScaled, df, binShift, phaseShift, inWinType=0, outWinType=0, f0,
-	hasFreq;
-
-	in = In.ar(inBus, 1);
-
-
-
-	# f0, hasFreq = Pitch.kr(in);
-
-
-	chain = FFT(LocalBuf(fftSize), in, overlap, inWinType, 1, winLen);
-
-	fScaled = f0 * 2;
-    df = fScaled - f0;
-    binShift = fftSize * (df / s.sampleRate);
-    chain = PV_BinShift(chain, stretch:1, shift:binShift, interp:1);
-    phaseShift = 2 * pi * binShift * overlap * (winLen/fftSize);
-    chain = PV_PhaseShift(chain, phaseShift, integrate:1);
-    out = IFFT(chain,outWinType,winLen);
-    Out.ar(outBus, out.dup);
-}).add;
-
-
-
-//Global variables
-p = 0; //frame number counter
 
 SynthDef(\phaseVocoderOCEANUp1, {
 
@@ -226,17 +195,10 @@ SynthDef(\phaseVocoderOCEANUp1, {
 	chain = FFT(LocalBuf(fftSize), in, overlap, inWinType, 1, winLen);
 
 	//Shift bins
-	chain = PV_BinShift(chain, pitchShiftAmount, 0);
+	chain = PV_MagShift(chain, pitchShiftAmount, 0);
 
-	//Adjust phase
-	chain = chain.pvcollect(1024,{ arg magnitude, phase, bin, index;
-		//p = p + 1;
-
-		[magnitude, phase + (pitchShiftAmount*bin-bin+0.5)*multiplier]
-	});
 
 	chain = IFFT(chain);
-	//chain = LPF.ar(chain, 8000);
 	Out.ar(chorusBus, chain);
 
 
@@ -259,18 +221,8 @@ SynthDef(\phaseVocoderOCEANDown1, {
 
 	//Shift bins
 	chain = PV_MagShift(chain, pitchShiftAmount, 0);
-	//Adjust phase
 
-	/*
-	chain = chain.pvcollect(1024,{ arg magnitude, phase, bin, index;
-		p = p + 1;
-
-		[magnitude, phase + (pitchShiftAmount*bin-bin+0.5)*multiplier]
-	});
-
-	*/
 	chain = IFFT(chain);
-	//chain = LPF.ar(chain, 8000);
 	Out.ar(chorusBus, chain);
 
 }).add;
@@ -278,21 +230,6 @@ SynthDef(\phaseVocoderOCEANDown1, {
 
 
 /* Chorus SynthDef */
-
-SynthDef("chorus2", { arg outBus=0, inBus;
-	var in, detunedSig, delayedSig,lpfOut, hpfOut, oct1, wet = 0;
-	in = In.ar(inBus, 1);
-
-	//in = LeakDC.ar(In.ar(inBus),0.999); //SoundIn is microphone input
-	detunedSig = FreqShift.ar(in, 10); //frequency shift of signal
-	delayedSig = Delay1.ar(in, mul: 1.0, add: 0.0);
-
-	lpfOut = LPF.ar(delayedSig, 4000); // lowpass filter of the input
-	hpfOut = RHPF.ar(lpfOut, 200);
-
-	Out.ar(outBus, wet*hpfOut+(1-wet)*in);
-}).add;
-
 
 
 SynthDef(\chorus, { arg inBus=10, outbus=0, predelay=0.08, rate=0.05, depth=0.015, ph_diff=0.5, wet = 0;
@@ -314,16 +251,14 @@ SynthDef(\chorus, { arg inBus=10, outbus=0, predelay=0.08, rate=0.05, depth=0.01
 
 
 
-
-
 SynthDef(\readInputSignal, {
 
 	arg outBus = 0;
 
 	//Adjust argument to your input port
-	//Out.ar(outBus, SoundIn.ar(0));
+	Out.ar(outBus, SoundIn.ar(1));
 
-	Out.ar(outBus, SinOsc.ar(440, 0, 0.5));
+	//Out.ar(outBus, SinOsc.ar(440, 0, 0.5));
 
 }).add;
 
@@ -595,7 +530,7 @@ setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
 
 
 w.onClose_({
-	s.quit;
+	//s.quit;
 });
 
 )
