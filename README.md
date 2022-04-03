@@ -35,4 +35,3 @@ To double the frequency of the signal, full-wave rectification is performed. In 
 * chorus effect:   applied  to  the  signal  after  the  octaver  stage
 #
 #
-## 4. Results and considerations
