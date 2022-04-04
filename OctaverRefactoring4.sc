@@ -247,7 +247,6 @@ w.front;
 
 
 i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2chorus.png");
-i.url.postln;
 
 
 v.backgroundImage_(i);
@@ -388,14 +387,12 @@ lpfKnob.mouseLeaveAction_({
 octaveKnob.action_({
 	arg knob;
   z.set(\up, knob.value);
-	knob.value.postln;
 
 });
 
 wetKnob.action_({
 	arg knob;
   z.set(\wet, knob.value);
-	knob.value.postln;
 
 });
 
@@ -403,14 +400,12 @@ wetKnob.action_({
 ampKnob.action_({
 	arg knob;
   z.set(\volume, knob.value);
-	knob.value.postln;
 
 });
 
 chorusKnob.action_({
 	arg knob;
   chorusSD.set(\wet, knob.value);
-	knob.value.postln;
 
 });
 
@@ -421,7 +416,6 @@ chorusDepth.action_({
 
 	mappedDepth = depthCS.map(knob.value);
   chorusSD.set(\depth, mappedDepth);
-	mappedDepth.postln;
 
 });
 
@@ -433,7 +427,6 @@ chorusRate.action_({
 	mappedRate = rateCS.map(knob.value);
 
   chorusSD.set(\rate, mappedRate);
-	mappedRate.postln;
 
 });
 
@@ -443,14 +436,12 @@ lpfKnob.action_({
 	var mappedLpf;
 	mappedLpf = lpfCS.map(knob.value);
 	lowPassSD.set(\lp, mappedLpf);
-	knob.value.postln;
 
 });
 
 
 //button POLYPHONIC MONOPHONIC
 setPoly.action_({ arg butt;
-            butt.value.postln;
 	if (butt.value==1,
 		{
 			w.background_(Color.grey(grey:0.5, alpha:0.92));
