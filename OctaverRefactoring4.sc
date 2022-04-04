@@ -177,7 +177,7 @@ SynthDef(\Chorus, { arg inBus=10, outbus=0, predelay=0.08, rate=0.05, depth=0.01
 	modulators = Array.fill(numDelays, {arg i; LFPar.kr(rate*rrand(0.94, 1.06), ph_diff * i, depth, predelay);});
 	sig = DelayC.ar(in, 0.5, modulators);
 	sig = sig.sum;
-	Out.ar(outbus, wet*sig!2);
+	Out.ar(outbus, wet*sig*2!2);
 	Out.ar(outbus, (1-wet)*source!2);
 }).add;
 
@@ -190,7 +190,7 @@ SynthDef(\readInputSignal, {
 	arg outBus = 0;
 
 	//Adjust argument to your input port
-	Out.ar(outBus, SoundIn.ar(0));
+	Out.ar(outBus, SoundIn.ar(1));
 
 
 }).add;
@@ -205,7 +205,6 @@ SynthDef(\lowPass, {
 
 	Out.ar(outBus,lpfOut!2);
 }).add;
-
 
 
 
@@ -438,6 +437,9 @@ lpfKnob.action_({
 	lowPassSD.set(\lp, mappedLpf);
 
 });
+
+lpfKnob.value = 0.75;
+lowPassSD.set(\lp, lpfCS.map(0.75));
 
 
 //button POLYPHONIC MONOPHONIC
