@@ -472,6 +472,7 @@ setPoly.action_({ arg butt;
 
 
 w.onClose_({
+	s.freeAll;
 	s.quit;
 });
 
