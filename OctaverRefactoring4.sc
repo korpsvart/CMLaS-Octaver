@@ -199,7 +199,7 @@ SynthDef(\readInputSignal, {
 
 
 SynthDef(\lowPass, {
-	arg outBus, inBus, lp = 200;
+	arg outBus, inBus, lp = 4000;
 	var lpfOut, in;
 
 	in = In.ar(inBus, 1);
@@ -273,7 +273,6 @@ depthCS = ControlSpec(0.015, 0.05);
 lpfCS = ControlSpec(200, 8000,'exp');
 
 rateCS = ControlSpec(0.05, 0.1);
-
 
 
 
@@ -445,8 +444,10 @@ lpfKnob.action_({
 
 });
 
-lpfKnob.value = 0.75;
-lowPassSD.set(\lp, lpfCS.map(0.75));
+
+lpfKnob.value = lpfCS.unmap(4000); //default value
+
+
 
 
 //button POLYPHONIC MONOPHONIC
