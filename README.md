@@ -27,8 +27,7 @@ Allows the user select which algorithm will be employed to synthesise the octave
 #
 ## 3. Implementation
 ### Main SynthDefs
-* OctaverMain: distribut
-es the signal coming from its input bus across all the audio busses which will be read by the effect SynthDefs;
+* OctaverMain: distributes the signal coming from its input bus across all the audio busses which will be read by the effect SynthDefs;
 * OctaveUpMonophonic:  used to receive the input signal and synthetise a signal an octave above (when monophonic mode is engaged);
 * OctaveDownMonophonic: used to receive the input signal and synthetise a signal an octave below (when monophonic mode is engaged);
 * OctaveUpPolyphonic: used to receive the input signal and synthetise a signal an octave above (when polyphonic mode is engaged);
