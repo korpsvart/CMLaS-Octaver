@@ -1,33 +1,53 @@
 
-/* Server and Input-Output setup */
-(
 
-Server.default=s=Server.local;
-
-//Setup according to your system
+s.waitForBoot({});
 
 
 
-s.options.inDevice_("Scarlett 2i2 USB");
-
-s.options.outDevice_("Scarlett 2i2 USB");
-
-s.options.hardwareBufferSize_(512);
-s.options.sampleRate_(48000);
-
-
-s.boot;
-
-)
-
-
-/* Octaver */
-
-
-(
+/* Variables */
 
 
 
+//Audio bus variables
+
+var octaveUp1BusMonophonic = Bus.audio(s,1);
+var octaveDown1BusMonophonic = Bus.audio(s,1);
+
+var octaveUp1BusPolyphonic = Bus.audio(s,1);
+var octaveDown1BusPolyphonic = Bus.audio(s,1);
+var lpBus = Bus.audio(s, 1);
+var chorusBus = Bus.audio(s, 1); //Bus for chorus FX
+
+
+var inputBus = Bus.audio(s, 1);
+
+//Synth def variables
+
+var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD, chorusSD, lowPassSD;
+
+
+
+//GUI variables
+
+
+var t1, t2, t3, t4,t5;
+var octaveKnob, wetKnob, chorusKnob, setPoly;
+var chorusDepth, chorusRate;
+var ampKnob, lpfKnob;
+
+var depthCS, rateCS, lpfCS;
+
+
+var w = Window.new("DelayLama Octaver", Rect(200,200,800,450));
+
+var v = UserView(w, Rect(0,0,800,450));
+
+
+
+
+
+
+/* SynthDefs section */
 
 SynthDef(\OctaverMain,{
 
@@ -66,10 +86,6 @@ SynthDef("OctaveUpMonophonic", {
 	rectSig =abs(in);
 	//Remove the DC component introduced by rectification
 	rectSig = LeakDC.ar(rectSig, 0.999);
-	//Lowpass the signal to smooth out the abrupt changes introduced by rectification
-	//(This needs some manual tuning I think)
-
-
 
 	Out.ar(outBus, rectSig*2);
 
@@ -98,8 +114,6 @@ SynthDef("OctaveDownMonophonic", { arg outBus, inBus;
 
 
 /* Phase vocoder pitch shifting approach */
-
-
 
 
 SynthDef(\OctaveUpPolyphonic, {
@@ -155,7 +169,8 @@ SynthDef(\Chorus, { arg inBus=10, outbus=0, predelay=0.08, rate=0.05, depth=0.01
 	var in, sig, modulators, numDelays = 12, source;
 
 
-	//Depth must range between 0.015 and 0.035 (milliseconds of delay)
+	//Depth must range between 0.015 and 0.035 (milliseconds of delay) for good results
+	//Rate must range between
 
 	source = In.ar(inBus, 1);
 	in = source * numDelays.reciprocal;
@@ -175,9 +190,8 @@ SynthDef(\readInputSignal, {
 	arg outBus = 0;
 
 	//Adjust argument to your input port
-	Out.ar(outBus, SoundIn.ar(1));
+	Out.ar(outBus, SoundIn.ar(0));
 
-	//Out.ar(outBus, SinOsc.ar(440, 0, 0.5));
 
 }).add;
 
@@ -196,43 +210,6 @@ SynthDef(\lowPass, {
 
 
 
-
-(
-
-//Audio bus variables
-
-var t1, t2, t3, t4,t5;
-var octaveUp1BusMonophonic = Bus.audio(s,1);
-var octaveDown1BusMonophonic = Bus.audio(s,1);
-
-var octaveUp1BusPolyphonic = Bus.audio(s,1);
-var octaveDown1BusPolyphonic = Bus.audio(s,1);
-var lpBus = Bus.audio(s, 1);
-var chorusBus = Bus.audio(s, 1); //Bus for chorus FX
-
-
-var inputBus = Bus.audio(s, 1);
-
-//Synth def variables
-
-var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD, chorusSD,lowPassSD;
-
-
-
-//GUI variables
-
-
-
-var octaveKnob, wetKnob, chorusKnob, setPoly;
-var chorusDepth, chorusRate;
-var ampKnob, lpfKnob;
-
-var depthCS, rateCS, lpfCS;
-
-
-var w = Window.new("DelayLama Octaver", Rect(200,200,800,450));
-
-var v = UserView(w, Rect(0,0,800,450));
 
 
 
@@ -270,10 +247,7 @@ h = Synth(\readInputSignal, [\outBus, inputBus]);
 w.front;
 
 
-
-
 i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2.png");
-i.plot();
 i.url.postln;
 
 
@@ -288,8 +262,6 @@ v.resize = 1;
 
 
 octaveKnob = Knob.new(v,Rect(72,160,70,70)).background_(Color.blue(val:0.8, alpha:0.5));
-//t1 = CompositeView.new(w,Rect(265,60,200,30));
-//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
 octaveKnob.action_({
 	arg knob;
   z.set(\up, knob.value);
@@ -308,8 +280,6 @@ octaveKnob.mouseLeaveAction_({
 });
 
 wetKnob = Knob.new(v,Rect(117,260,70,70)).background_(Color.blue(val:0.8, alpha:0.5));
-//t1 = CompositeView.new(w,Rect(265,60,200,30));
-//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
 wetKnob.action_({
 	arg knob;
   z.set(\wet, knob.value);
@@ -329,8 +299,6 @@ wetKnob.mouseLeaveAction_({
 });
 
 ampKnob = Knob.new(v,Rect(350,275,130,130)).background_(Color.blue(val:0.8, alpha:0.5));
-//t1 = CompositeView.new(w,Rect(265,60,200,30));
-//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
 ampKnob.action_({
 	arg knob;
   z.set(\volume, knob.value);
@@ -349,8 +317,6 @@ ampKnob.mouseLeaveAction_({
 });
 
 chorusKnob = Knob.new(v,Rect(536,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
-//t1 = CompositeView.new(w,Rect(265,60,200,30));
-//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
 chorusKnob.action_({
 	arg knob;
   chorusSD.set(\wet, knob.value);
@@ -401,8 +367,6 @@ StaticText(v, Rect(704,400,55,55)).string_('Rate').stringColor_(Color.grey(1,1))
 lpfCS = ControlSpec(200, 8000,'exp');
 lpfKnob = Knob.new(v,Rect(241,313,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
 
-//t1 = CompositeView.new(w,Rect(265,60,200,30));
-//StaticText.new(t1,Rect(0,0,150,30)).string_("Octave Down/Up");
 lpfKnob.action_({
 	arg knob;
 	var mappedLpf;
@@ -452,7 +416,8 @@ w.onClose_({
 	s.quit;
 });
 
-)
+
+
 
 
 
