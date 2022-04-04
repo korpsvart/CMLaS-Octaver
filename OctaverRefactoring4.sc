@@ -1,6 +1,6 @@
 
 
-s.waitForBoot({});
+s.waitForBoot({
 
 
 
@@ -205,7 +205,6 @@ SynthDef(\lowPass, {
 
 	Out.ar(outBus,lpfOut!2);
 }).add;
-)
 
 
 
@@ -247,7 +246,7 @@ h = Synth(\readInputSignal, [\outBus, inputBus]);
 w.front;
 
 
-i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2.png");
+i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2chorus.png");
 i.url.postln;
 
 
@@ -261,7 +260,131 @@ v.resize = 1;
 
 
 
+
+//ControlSpec setup
+
+depthCS = ControlSpec(0.015, 0.05);
+
+lpfCS = ControlSpec(200, 8000,'exp');
+
+rateCS = ControlSpec(0.05, 0.1);
+
+
+
+
+//Knobs setup
+
+
+
+
 octaveKnob = Knob.new(v,Rect(72,160,70,70)).background_(Color.blue(val:0.8, alpha:0.5));
+
+
+wetKnob = Knob.new(v,Rect(117,260,70,70)).background_(Color.blue(val:0.8, alpha:0.5));
+
+
+
+
+ampKnob = Knob.new(v,Rect(350,275,130,130)).background_(Color.blue(val:0.8, alpha:0.5));
+
+
+
+lpfKnob = Knob.new(v,Rect(241,313,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
+
+
+chorusKnob = Knob.new(v,Rect(536,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
+
+
+chorusDepth = Knob(v,Rect(620,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
+
+chorusRate = Knob.new(v,Rect(704,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
+
+setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
+	["monophonic", Color.black, Color.green(val:0.7, alpha:0.5)],
+    ["polyphonic", Color.white, Color.red(val:0.6, alpha:0.5)]
+]);
+
+
+//Labels setup
+
+//ampKnob label
+t1 = StaticText.new(v, Rect(ampKnob.bounds.left,
+		ampKnob.bounds.top+70,ampKnob.bounds.width,ampKnob.bounds.height)).align_(\center)
+	.string_("Output volume").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
+t1.visible = false;
+
+//octaveKnob label
+t2 = StaticText.new(v, Rect(octaveKnob.bounds.left,	octaveKnob.bounds.top-90,octaveKnob.bounds.width,octaveKnob.bounds.height)).align_(\center)
+	.string_("Octave down/up").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
+t2.visible = false;
+
+//wetKnob label
+t3 = StaticText.new(v, Rect(wetKnob.bounds.left,
+		wetKnob.bounds.top+90,wetKnob.bounds.width,wetKnob.bounds.height)).align_(\center)
+	.string_("Octave dry/wet").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
+t3.visible = false;
+
+//lpf label
+t5 = StaticText.new(v, Rect(lpfKnob.bounds.left,
+		lpfKnob.bounds.top + 55 ,lpfKnob.bounds.width,lpfKnob.bounds.height)).align_(\center)
+	.string_("LPF Cutoff").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
+t5.visible = false;
+
+
+//Chorus wet label
+StaticText(v, Rect(536,400,55,55)).string_('Wet').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
+.align_(\center);
+
+
+//Chorus depth label
+StaticText(v, Rect(620,400,55,55)).string_('Depth').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
+.align_(\center);
+
+//Chorus rate label
+StaticText(v, Rect(704,400,55,55)).string_('Rate').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
+.align_(\center);
+
+
+/* Knob actions */
+
+
+octaveKnob.mouseEnterAction_({
+	t2.visible = true;
+
+});
+octaveKnob.mouseLeaveAction_({
+	t2.visible = false;
+});
+
+
+
+wetKnob.mouseEnterAction_({
+	t3.visible = true;
+
+});
+wetKnob.mouseLeaveAction_({
+	t3.visible = false;
+});
+
+
+
+ampKnob.mouseEnterAction_({
+		t1.visible = true;
+
+});
+ampKnob.mouseLeaveAction_({
+	t1.visible = false;
+});
+
+
+lpfKnob.mouseEnterAction_({
+	t5.visible = true;
+
+});
+lpfKnob.mouseLeaveAction_({
+	t5.visible = false;
+});
+
 octaveKnob.action_({
 	arg knob;
   z.set(\up, knob.value);
@@ -269,17 +392,6 @@ octaveKnob.action_({
 
 });
 
-octaveKnob.mouseEnterAction_({
-	arg knob;
-	t2 = StaticText.new(v, Rect(knob.bounds.left,
-		knob.bounds.top-90,knob.bounds.width,knob.bounds.height)).align_(\center)
-	.string_("Octave down/up").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
-});
-octaveKnob.mouseLeaveAction_({
-	t2.remove;
-});
-
-wetKnob = Knob.new(v,Rect(117,260,70,70)).background_(Color.blue(val:0.8, alpha:0.5));
 wetKnob.action_({
 	arg knob;
   z.set(\wet, knob.value);
@@ -288,17 +400,6 @@ wetKnob.action_({
 });
 
 
-wetKnob.mouseEnterAction_({
-	arg knob;
-	t3 = StaticText.new(v, Rect(knob.bounds.left,
-		knob.bounds.top+90,knob.bounds.width,knob.bounds.height)).align_(\center)
-	.string_("Octave dry/wet").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
-});
-wetKnob.mouseLeaveAction_({
-	t3.remove;
-});
-
-ampKnob = Knob.new(v,Rect(350,275,130,130)).background_(Color.blue(val:0.8, alpha:0.5));
 ampKnob.action_({
 	arg knob;
   z.set(\volume, knob.value);
@@ -306,29 +407,14 @@ ampKnob.action_({
 
 });
 
-ampKnob.mouseEnterAction_({
-	arg knob;
-	t1 = StaticText.new(v, Rect(knob.bounds.left,
-		knob.bounds.top+70,knob.bounds.width,knob.bounds.height)).align_(\center)
-	.string_("Output volume").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
-});
-ampKnob.mouseLeaveAction_({
-	t1.remove;
-});
-
-chorusKnob = Knob.new(v,Rect(536,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
 chorusKnob.action_({
 	arg knob;
   chorusSD.set(\wet, knob.value);
 	knob.value.postln;
 
 });
-StaticText(v, Rect(536,400,55,55)).string_('Wet').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
-.align_(\center);
 
 
-depthCS = ControlSpec(0.015, 0.05);
-chorusDepth = Knob(v,Rect(620,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
 chorusDepth.action_({
 	arg knob;
 	var mappedDepth;
@@ -340,13 +426,6 @@ chorusDepth.action_({
 });
 
 
-StaticText(v, Rect(620,400,55,55)).string_('Depth').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
-.align_(\center);
-
-
-rateCS = ControlSpec(0.05, 0.1);
-
-chorusRate = Knob.new(v,Rect(704,360,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
 chorusRate.action_({
 	arg knob;
 	var mappedRate;
@@ -359,14 +438,6 @@ chorusRate.action_({
 });
 
 
-
-StaticText(v, Rect(704,400,55,55)).string_('Rate').stringColor_(Color.grey(1,1)).font_(Font("Serif",16))
-.align_(\center);
-
-
-lpfCS = ControlSpec(200, 8000,'exp');
-lpfKnob = Knob.new(v,Rect(241,313,55,55)).background_(Color.blue(val:0.8, alpha:0.5));
-
 lpfKnob.action_({
 	arg knob;
 	var mappedLpf;
@@ -375,22 +446,10 @@ lpfKnob.action_({
 	knob.value.postln;
 
 });
-lpfKnob.mouseEnterAction_({
-	arg knob;
-	t5 = StaticText.new(v, Rect(knob.bounds.left,
-		knob.bounds.top + 55 ,knob.bounds.width,knob.bounds.height)).align_(\center)
-	.string_("LPF Cutoff").stringColor_(Color.grey(1,1)).font_(Font("Serif",16));
-});
-lpfKnob.mouseLeaveAction_({
-	t5.remove;
-});
 
 
 //button POLYPHONIC MONOPHONIC
-setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
-	["monophonic", Color.black, Color.green(val:0.7, alpha:0.5)],
-    ["polyphonic", Color.white, Color.red(val:0.6, alpha:0.5)]
-]).action_({ arg butt;
+setPoly.action_({ arg butt;
             butt.value.postln;
 	if (butt.value==1,
 		{
@@ -414,6 +473,10 @@ setPoly = Button(parent:v, bounds:Rect(231, 273, 80, 30)).states_([
 
 w.onClose_({
 	s.quit;
+});
+
+
+
 });
 
 
