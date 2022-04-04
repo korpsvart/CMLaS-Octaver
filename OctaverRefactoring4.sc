@@ -3,9 +3,7 @@
 s.waitForBoot({
 
 
-
 /* Variables */
-
 
 
 //Audio bus variables
@@ -23,7 +21,8 @@ var inputBus = Bus.audio(s, 1);
 
 //Synth def variables
 
-var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD, chorusSD, lowPassSD;
+var octUp1MonoSD, octUp1PolySD, octDown1MonoSD, octDown1PolySD, chorusSD, lowPassSD,
+	octaverMainSD, readInputSD;
 
 
 
@@ -43,6 +42,9 @@ var w = Window.new("DelayLama Octaver", Rect(200,200,800,450));
 var v = UserView(w, Rect(0,0,800,450));
 
 
+
+//Routine to add synthdefs and create them in a synchronous way
+Routine({
 
 
 
@@ -207,10 +209,7 @@ SynthDef(\lowPass, {
 }).add;
 
 
-
-
-
-
+s.sync;
 
 
 //Bus and SynthDef setup
@@ -226,7 +225,7 @@ octDown1MonoSD = Synth(\OctaveDownMonophonic, [\inBus, octaveDown1BusMonophonic,
 octUp1MonoSD = Synth(\OctaveUpMonophonic, [\inBus, octaveUp1BusMonophonic,
 	\outBus, lpBus], g);
 
-z = Synth.before(g,\OctaverMain, [\inBus, inputBus, \octaveUpBus, octaveUp1BusMonophonic,
+octaverMainSD = Synth.before(g,\OctaverMain, [\inBus, inputBus, \octaveUpBus, octaveUp1BusMonophonic,
 	\octaveDownBus, octaveDown1BusMonophonic]);
 
 lowPassSD = Synth.after(g,\lowPass, [\inBus, lpBus,
@@ -235,7 +234,17 @@ lowPassSD = Synth.after(g,\lowPass, [\inBus, lpBus,
 chorusSD = Synth.after(lowPassSD, \Chorus, [\inBus, chorusBus]);
 
 
-h = Synth(\readInputSignal, [\outBus, inputBus]);
+readInputSD = Synth(\readInputSignal, [\outBus, inputBus]);
+
+
+
+
+}).play;
+
+
+
+
+
 
 
 
@@ -245,14 +254,12 @@ h = Synth(\readInputSignal, [\outBus, inputBus]);
 w.front;
 
 
-i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "octaver2chorus.png");
+i = Image.open(thisProcess.nowExecutingPath.dirname +/+ "img" +/+ "background.png");
 
 
 v.backgroundImage_(i);
 
 v.front;
-v.visible = true;
-v.alwaysOnTop = true;
 v.resize = 1;
 
 
@@ -385,20 +392,20 @@ lpfKnob.mouseLeaveAction_({
 
 octaveKnob.action_({
 	arg knob;
-  z.set(\up, knob.value);
+  octaverMainSD.set(\up, knob.value);
 
 });
 
 wetKnob.action_({
 	arg knob;
-  z.set(\wet, knob.value);
+  octaverMainSD.set(\wet, knob.value);
 
 });
 
 
 ampKnob.action_({
 	arg knob;
-  z.set(\volume, knob.value);
+  octaverMainSD.set(\volume, knob.value);
 
 });
 
@@ -448,16 +455,16 @@ setPoly.action_({ arg butt;
 		{
 			w.background_(Color.grey(grey:0.5, alpha:0.92));
 			//Switch busses to polyphonic
-			z.set(\octaveUpBus, octaveUp1BusPolyphonic);
-			z.set(\octaveDownBus, octaveDown1BusPolyphonic);
+			octaverMainSD.set(\octaveUpBus, octaveUp1BusPolyphonic);
+			octaverMainSD.set(\octaveDownBus, octaveDown1BusPolyphonic);
 			lpfKnob.visible = 0;
 
 		},
 		{
 			w.background_(Color.grey(grey:0.95, alpha:0.5));
 			//Switch busses to monophonic
-			z.set(\octaveUpBus, octaveUp1BusMonophonic);
-			z.set(\octaveDownBus, octaveDown1BusMonophonic);
+			octaverMainSD.set(\octaveUpBus, octaveUp1BusMonophonic);
+			octaverMainSD.set(\octaveDownBus, octaveDown1BusMonophonic);
 			lpfKnob.visible = 1;
 		}
 	)
@@ -467,6 +474,8 @@ setPoly.action_({ arg butt;
 w.onClose_({
 	s.quit;
 });
+
+
 
 
 
